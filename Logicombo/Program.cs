@@ -6,7 +6,7 @@ using System.Threading;
  * Project: Logicombo - A Game of Logic and Combat
  * Author: Kalin Robert Hanninen, 2021
  * File: Program.cs
- * Description: Execute game intialization and loop.
+ * Description: Execute game intialization and control loop.
  */
 namespace Logicombo
 {
@@ -22,6 +22,13 @@ namespace Logicombo
         private static char inputC;
 
         public static Random r = new Random();
+
+        private static void WaitForKey()
+        {
+            Console.Write("\n>>Press any key to continue...");
+            Console.ReadKey();
+            Console.Clear();
+        }
 
         //Helper method - extract first character from string input or empty
         private static char ValidCharInput()
@@ -48,13 +55,10 @@ namespace Logicombo
             Console.WriteLine("#<<<<Program of Logic & Combat>>>>#");
             Console.WriteLine("#=====Developed by K Hanninen=====#");
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine();
 
             Console.Beep(80, 200);
 
-            Console.Write(">>Press any key to continue...");
-            Console.ReadKey();
-            Console.Clear();
+            WaitForKey();
 
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("#=================================#");
@@ -180,35 +184,7 @@ namespace Logicombo
                         break;
                 }
 
-                //Confirm selected battle-grid dimensions, set valid flag to false when denied
-                bool confirmation = false;
-                while (sizeValid && !confirmation)
-                {
-                    Console.WriteLine("\n>>Grid is '" + gX + "x" + gY + "' ... Are you sure? (y/n)");
-                    Console.Write("<<Input: ");
-                    inputC = ValidCharInput();
-
-                    switch (inputC)
-                    {
-                        case 'y':
-                            confirmation = true;
-                            break;
-                        case 'n':
-                            confirmation = true;
-                            sizeValid = false;
-                            Console.WriteLine();
-                            break;
-                        default:
-                            //Notify error - cannot confirm
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine(">>Selection '" + inputC + "' invalid. Try again.\n");
-                            Console.ForegroundColor = ConsoleColor.White;
-
-                            Console.Beep(500, 250);
-                            break;
-                    }
-                }
-
+                ConfirmSelection(ref sizeValid, (gX.ToString("D2") + "x" + gY.ToString("D2") + " GRID"));
             }
         }
 
@@ -261,33 +237,39 @@ namespace Logicombo
                         break;
                 }
 
-                //Confirm selected battle-grid difficulty, set valid flag to false when denied
-                bool confirmation = false;
-                while (modeValid && !confirmation)
+                ConfirmSelection(ref modeValid, modeName + " MODE");
+            }
+        }
+
+        //Confirmation helper method - use in configure methods to verify selection before proceeding
+        private static void ConfirmSelection(ref bool valid, string name)
+        {
+            //Confirm selected parameters, set valid flag to false when denied
+            bool confirmation = false;
+            while (valid && !confirmation)
+            {
+                Console.WriteLine("\n>>Game is set to '" + name + "' ... Are you sure? (y/n)");
+                Console.Write("<<Input: ");
+                inputC = ValidCharInput();
+
+                switch (inputC)
                 {
-                    Console.WriteLine("\n>>Game is set to '" + modeName + "' mode ... Are you sure? (y/n)");
-                    Console.Write("<<Input: ");
-                    inputC = ValidCharInput();
+                    case 'y':
+                        confirmation = true;
+                        break;
+                    case 'n':
+                        confirmation = true;
+                        valid = false;
+                        Console.WriteLine();
+                        break;
+                    default:
+                        //Notify error - cannot confirm
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine(">>Selection '" + inputC + "' invalid. Try again.\n");
+                        Console.ForegroundColor = ConsoleColor.White;
 
-                    switch (inputC)
-                    {
-                        case 'y':
-                            confirmation = true;
-                            break;
-                        case 'n':
-                            confirmation = true;
-                            modeValid = false;
-                            Console.WriteLine();
-                            break;
-                        default:
-                            //Notify error - cannot confirm
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine(">>Selection '" + inputC + "' invalid. Try again.\n");
-                            Console.ForegroundColor = ConsoleColor.White;
-
-                            Console.Beep(500, 250);
-                            break;
-                    }
+                        Console.Beep(500, 250);
+                        break;
                 }
             }
         }
@@ -305,6 +287,7 @@ namespace Logicombo
 
                 ConfigureMode();
 
+                WaitForKey();
                 gameSet = true;
             }
 
