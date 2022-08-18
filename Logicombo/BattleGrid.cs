@@ -181,13 +181,74 @@ namespace Logicombo
             return humQueue.Peek();
         }
 
-        public Units.Com DequeueCom()
+        public void DequeueCom()
         {
-            return comQueue.Dequeue();
+            Units.Com c = comQueue.Dequeue();
+            unitDataLayer[c.Position.Item1, c.Position.Item2] = c;
         }
-        public Units.Human DequeueHum()
+        public void DequeueHum()
         {
-            return humQueue.Dequeue();
+            Units.Human h = humQueue.Dequeue();
+            Units.BaseUnit temp = unitDataLayer[h.Position.Item1, h.Position.Item2];
+            if (temp == null)
+            {
+                unitDataLayer[h.Position.Item1, h.Position.Item2] = h;
+            }
+            else
+            {
+                if (temp is Units.Foliage)
+                {
+                    //TODO: Decide how to distribute Com units when colliding with foliage
+                    unitDataLayer[h.Position.Item1, h.Position.Item2].Damage();
+                }
+                CombineCom(h.Position.Item1, h.Position.Item2, temp);
+            }
+            
+        }
+
+        //Helper method - manage game rules for combining like (Com) units; max power is 3
+        private void CombineCom(int x, int y, Units.BaseUnit t)
+        {
+            if (t is Units.Com && t.Power < 3)
+            {
+                unitDataLayer[x, y].Damage();
+
+                Units.Com ally = (Units.Com)t;
+                ally.Combine();
+            }
+        }
+
+        public void MarchCom()
+        {
+            for (int i = 0; i < unitDataLayer.GetLength(0); i++)
+            {
+                for(int j = unitDataLayer.GetLength(1) - 1; j >= 0; j--)
+                {
+                    if (unitDataLayer[i, j] != null && unitDataLayer[i, j].Power == 0)
+                    {
+                        unitDataLayer[i, j] = null;
+                    }
+
+                    if (unitDataLayer[i, j] is Units.Com && j + 1 < unitDataLayer.GetLength(1))
+                    {
+                        var temp = (unitDataLayer[i, j + 1]);
+                        if (temp == null)
+                        {
+                            unitDataLayer[i, j + 1] = GetUnitAt(i, j);
+                            unitDataLayer[i, j] = null;
+                        }
+                        else if (temp is Units.Wall || temp is Units.Human)
+                        {
+                            unitDataLayer[i, j].Damage();
+                            temp.Damage();
+                        }
+                        else
+                        {
+                            CombineCom(i, j, temp);
+                        }
+                    }
+                }
+            }
         }
 
         public Units.BaseUnit GetUnitAt(int xPos, int yPos)

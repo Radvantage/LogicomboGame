@@ -298,12 +298,23 @@ namespace Logicombo
             Console.Clear();
             Console.Beep(200, 500);
 
+            int turnCounter = 0;
             while (true)
             {
                 v.Draw();
-                Thread.Sleep(500);
-                bg.DequeueCom();
-                bg.EnqueueCom();
+
+                Thread.Sleep(450);
+                turnCounter++;
+
+                if (turnCounter%2 == 0)
+                {
+                    Console.Beep(200, 50);
+                    bg.MarchCom();
+                    bg.DequeueCom();
+                    bg.EnqueueCom();
+                }
+                
+                
             }
             Console.ReadKey();
         }

@@ -20,6 +20,13 @@ namespace Logicombo.Units
             }
         }
 
+        //Combine one power into self from another unit behind
+        public void Combine()
+        {
+            Power++;
+            ResetBody();
+        }
+
         //Com enemy unit constructor - X must exist within width of Battlegrid
         public Com(int xPos, int pLevel)
         {
