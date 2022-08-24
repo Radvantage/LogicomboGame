@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Logicombo.Units;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -12,6 +13,14 @@ namespace Logicombo
 {
     class BattleGrid
     {
+        private bool _gameOver = false;
+        public bool GameOver
+        {
+            get
+            {
+                return _gameOver;
+            }
+        }
         public int Width
         {
             get;
@@ -46,7 +55,7 @@ namespace Logicombo
                 return _goalRow;
             }
         }
-
+        
         //Constructor for grid, set dimensions and player's goal row. Difficulty parameters: 3, 2, 1 corresponds to wall power level. Foliage parameters: 3 - 100%, 2 - 50%, 1 - 0% on entry points
         public BattleGrid(String levelName, int dimenX, int dimenY, int row, int difficulty, int foliage)
         {
@@ -89,36 +98,14 @@ namespace Logicombo
                     //Distribute possible entry point bridges for queueing new Computer enemies. Simultaneous manage foliage random distribution, east/west push based on respective east/west column.
                     if (i%difficultyLevel == 0)
                     {
-                        //Establishing attributes to push to foliage candidates during generation. Initialize before conditionals to avoid repetitious code.
-                        int foliageY = Program.r.Next(Goal);
-                        bool eastPush;
-                        if (i + 1 < Width / 2)
-                        {
-                            eastPush = false;
-                        }
-                        else
-                        {
-                            eastPush = true;
-                        }
-
                         //Distribute entry points and foliage on grid based on respective value definitions.
                         if (difficultyLevel > 1)
                         {
                             if (i > 0 && i < Width)
                             {
                                 ComXPositions.Add(i);
-                            }
 
-                            if (foliage == 3)
-                            {
-                                unitDataLayer[i, foliageY] = new Units.Foliage(i, foliageY, eastPush);
-                            }
-                            else if (foliage == 2)
-                            {
-                                if (Program.r.Next(2) == 1)
-                                {
-                                    unitDataLayer[i, foliageY] = new Units.Foliage(i, foliageY, eastPush);
-                                }
+                                GenerateFoliage(i, foliage);
                             }
                         }
                         else
@@ -128,18 +115,8 @@ namespace Logicombo
                                 if (i > 0 && i < Width)
                                 {
                                     ComXPositions.Add(i);
-                                }
-                                
-                                if (foliage == 3)
-                                {
-                                    unitDataLayer[i, foliageY] = new Units.Foliage(i, foliageY, eastPush);
-                                }
-                                else if (foliage == 2)
-                                {
-                                    if (Program.r.Next(2) == 1)
-                                    {
-                                        unitDataLayer[i, foliageY] = new Units.Foliage(i, foliageY, eastPush);
-                                    }
+
+                                    GenerateFoliage(i, foliage);
                                 }
                             }
                         }
@@ -150,6 +127,16 @@ namespace Logicombo
             else
             {
                 throw new ArgumentOutOfRangeException("Given values for game grid dimensions are invalid - X and/or Y coordinate(s) are less than 3!");
+            }
+        }
+
+        //Create foliage along a specified row, given a density parameter
+        public void GenerateFoliage(int x, int density)
+        {
+            int foliageY = Program.r.Next(1, Goal);
+            if (Program.r.Next(density) > 0 && unitDataLayer[x, foliageY] == null)
+            {
+                unitDataLayer[x, foliageY] = new Units.Foliage(x, foliageY);
             }
         }
 
@@ -184,25 +171,30 @@ namespace Logicombo
         public void DequeueCom()
         {
             Units.Com c = comQueue.Dequeue();
-            unitDataLayer[c.Position.Item1, c.Position.Item2] = c;
-        }
-        public void DequeueHum()
-        {
-            Units.Human h = humQueue.Dequeue();
-            Units.BaseUnit temp = unitDataLayer[h.Position.Item1, h.Position.Item2];
+            Units.BaseUnit temp = unitDataLayer[c.Position.Item1, c.Position.Item2];
             if (temp == null)
             {
-                unitDataLayer[h.Position.Item1, h.Position.Item2] = h;
+                unitDataLayer[c.Position.Item1, c.Position.Item2] = c;
             }
             else
             {
-                if (temp is Units.Foliage)
+                if (temp is Units.Foliage || temp is Units.Human)
                 {
                     //TODO: Decide how to distribute Com units when colliding with foliage
-                    unitDataLayer[h.Position.Item1, h.Position.Item2].Damage();
+                    unitDataLayer[c.Position.Item1, c.Position.Item2].Damage();
+                    unitDataLayer[c.Position.Item1, c.Position.Item2].Damage();
                 }
-                CombineCom(h.Position.Item1, h.Position.Item2, temp);
+                else
+                {
+                    CombineCom(c.Position.Item1, c.Position.Item2, temp);
+                }
             }
+        }
+
+        public void DequeueHum()
+        {
+            Units.Human h = humQueue.Dequeue();
+            
             
         }
 
@@ -226,6 +218,7 @@ namespace Logicombo
                 {
                     if (unitDataLayer[i, j] != null && unitDataLayer[i, j].Power == 0)
                     {
+                        //Grid cleanup
                         unitDataLayer[i, j] = null;
                     }
 
@@ -234,16 +227,48 @@ namespace Logicombo
                         var temp = (unitDataLayer[i, j + 1]);
                         if (temp == null)
                         {
+                            //Move forward on open space
                             unitDataLayer[i, j + 1] = GetUnitAt(i, j);
                             unitDataLayer[i, j] = null;
+
+                            if (j + 1 == unitDataLayer.GetLength(1) - 1)
+                            {
+                                _gameOver = true;
+                            }
                         }
-                        else if (temp is Units.Wall || temp is Units.Human)
+                        else if (temp is Units.Foliage)
                         {
+                            int lowerBound = 0;
+                            int upperBound = 1;
+
+                            //Set traffic bounds whether an open, adjacent space exists
+                            if (i > 0 && unitDataLayer[i - 1, j] == null) lowerBound = -1;
+                            if (i < unitDataLayer.GetLength(0) && unitDataLayer[i + 1, j] == null) upperBound = 2;
+                            
+                            int redirectX = Program.r.Next(lowerBound, upperBound);
+
+                            if (Math.Abs(redirectX) > 0)
+                            {
+                                //Redirect Com unit's path away from thick foliage
+                                unitDataLayer[i + redirectX, j] = GetUnitAt(i, j);
+                                unitDataLayer[i, j] = null;
+                                break;
+                            }
+                            else
+                            {
+                                //If no open space, damage foliage
+                                temp.Damage();
+                            }
+                        }
+                        else if (temp is Units.Wall || temp is Units.Human || temp is Units.Barricade)
+                        {
+                            //Damage obstacles to proceed
                             unitDataLayer[i, j].Damage();
                             temp.Damage();
                         }
                         else
                         {
+                            //Combine with forces that are further ahead and stuck, if possible
                             CombineCom(i, j, temp);
                         }
                     }

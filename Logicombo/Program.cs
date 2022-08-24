@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using System;
+﻿using System;
 using System.Threading;
 
 /*
@@ -312,6 +311,11 @@ namespace Logicombo
                     bg.MarchCom();
                     bg.DequeueCom();
                     bg.EnqueueCom();
+
+                    if (turnCounter%10 == 0)
+                    {
+                        bg.GenerateFoliage(Program.r.Next(gX), foliage);
+                    }
                 }
                 
                 

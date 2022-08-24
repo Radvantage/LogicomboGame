@@ -12,12 +12,6 @@ namespace Logicombo.Units
 {
     class Foliage : BaseUnit
     {
-        //True if redirect effect moves Com unit rightward upon collision, false if leftwards.
-        public bool EastDirection
-        {
-            get;
-        }
-
         public override char OBJ_ICON
         {
             get
@@ -26,10 +20,9 @@ namespace Logicombo.Units
             }
         }
 
-        public Foliage(int xPos, int yPos, bool east)
+        public Foliage(int xPos, int yPos)
         {
             Position = (xPos, yPos);
-            EastDirection = east;
             Power = 1;
             ResetBody();
         }
